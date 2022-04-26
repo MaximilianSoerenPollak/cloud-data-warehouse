@@ -7,7 +7,7 @@ config.read('dwh.cfg')
 
 # DROP TABLES
 
-staging_events_table_drop = ""
+staging_events_table_drop = "DROP TABLE IF EXISTS staging_events CASCADE;"
 staging_songs_table_drop = ""
 songplay_table_drop = ""
 user_table_drop = ""
@@ -18,9 +18,42 @@ time_table_drop = ""
 # CREATE TABLES
 
 staging_events_table_create= ("""
+    CREATE TABLE IF NOT EXISTS staging_events(
+    id IDENTITY(0,1) NOT NULL,
+    auth VARCHAR(50) NOT NULL,
+    firstName VARCHAR(255),
+    lastName VARCHAR(255),
+    gender VARCHAR(5),
+    location VARCHAR,
+    userid INT NOT NULL, 
+    artist VARCHAR(255),
+    song VARCHAR(255), 
+    length FLOAT,
+    level VARCHAR(50),
+    sessionID INT,
+    itemInSession INT(255),
+    page VARCHAR(50), 
+    method VARCHAR(10),
+    status INT(3)
+    userAgent VARCHAR,
+    registration BIGINT,
+    ts TIMESTAMP);
 """)
 
 staging_songs_table_create = ("""
+    CREATE TABLE IF NOT EXISTS staging_songs(
+    ID IDENTITY(0,1) NOT NULL,
+    artistID VARCHAR,
+    artistLatitude FlOAT,
+    artistLongitute FLOAT,
+    artistName VARCHAR,
+    duration FLOAT,
+    songID VARCHAR,
+    title VARCHAR,
+    year INTEGER
+    );
+
+
 """)
 
 songplay_table_create = ("""
