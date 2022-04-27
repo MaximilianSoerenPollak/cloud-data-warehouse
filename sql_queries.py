@@ -1,5 +1,9 @@
-import configparser
 
+# TODO: See if you can narrow the scope of the columns (e.g. VARCHAR -> VARCHAR(50) or whatever.) 
+
+# ----------------------- SCRIPT ------------------------------------------------------
+
+import configparser
 
 # CONFIG
 config = configparser.ConfigParser()
@@ -15,66 +19,113 @@ song_table_drop = ""
 artist_table_drop = ""
 time_table_drop = ""
 
-# CREATE TABLES
+# Note: Do not bother with Forgein Keys' as AWS does not enforce them and counts on your own 
+#       ETL to enforce them, it does however enforce 'NOT NULL'. I will still define a PK just
+#       to make it clearer for me and the reader.
 
+# CREATE TABLES
 staging_events_table_create= ("""
     CREATE TABLE IF NOT EXISTS staging_events(
     id IDENTITY(0,1) NOT NULL,
     auth VARCHAR(50) NOT NULL,
-    firstName VARCHAR(255),
-    lastName VARCHAR(255),
+    first_name VARCHAR(255),
+    last_name VARCHAR(255),
     gender VARCHAR(5),
     location VARCHAR,
-    userid INT NOT NULL, 
+    user_id INT NOT NULL, 
     artist VARCHAR(255),
     song VARCHAR(255), 
     length FLOAT,
     level VARCHAR(50),
-    sessionID INT,
-    itemInSession INT(255),
+    session_id INT,
+    item_in_session INT(255),
     page VARCHAR(50), 
     method VARCHAR(10),
     status INT(3)
-    userAgent VARCHAR,
+    user_agent VARCHAR,
     registration BIGINT,
-    ts TIMESTAMP);
+    ts TIMESTAMP
+    PRIMARY KEY (id));
 """)
 
 staging_songs_table_create = ("""
     CREATE TABLE IF NOT EXISTS staging_songs(
-    ID IDENTITY(0,1) NOT NULL,
-    artistID VARCHAR,
-    artistLatitude FlOAT,
-    artistLongitute FLOAT,
-    artistName VARCHAR,
+    id IDENTITY(0,1) NOT NULL,
+    artist_id VARCHAR,
+    artist_latitude FlOAT,
+    artist_longitute FLOAT,
+    artist_name VARCHAR,
     duration FLOAT,
-    songID VARCHAR,
+    song_id VARCHAR,
     title VARCHAR,
     year INTEGER
-    );
-
-
+    PRIMARY KEY (id));
 """)
 
 songplay_table_create = ("""
+    // Double check if these need to be 'Not Null' or not
+    id IDENTITYT(0,1) NOT NULL,
+    songplay_id INTEGER NOT NULL,
+    start_time TIMESTAMP NOT NULL,
+    user_id INTEGER NOT NULL,
+    level VARCHAR(50) NOT NULL,
+    song_id INTEGER NOT NULL,
+    artist_id INTEGER NOT NULL,
+    session_id INTEGER NOT NULL,
+    location VARCHAR NOT NULL,
+    user_agent VARCHAR NOT NULL,
+    PRIMARY KEY (id));
 """)
 
 user_table_create = ("""
+    id IDENTITYT(0,1) NOT NULL,
+    user_id INTEGER NOT NULL,
+    first_name VARCHAR NOT NULL,
+    last_name VARCHAR NOT NULL,
+    gender VARCHAR(5) ,
+    level VARCHAR(50),
+    PRIMARY KEY (id));    
 """)
 
 song_table_create = ("""
+    id IDENTITYT(0,1) NOT NULL,
+    song_id INTEGER,
+    title VARCHAR,
+    artist_id INTEGER,
+    year INTEGER,
+    duration FLOAT,
+    PRIMARY KEY (id));
 """)
 
 artist_table_create = ("""
+    id INDENTITYT(0,1) NOT NULL,
+    artist_id VARCHAR NOT NULL,
+    name VARCHAR,
+    location VARCHAR,
+    lattitude FLOAT,
+    longitude FLOAT,
+    PRIMARY KEY (id));
 """)
 
 time_table_create = ("""
+    id IDENTITYT(0,1) NOT NULL,
+    start_time TIMESTAMP,
+    hour INTEGER,
+    day VARCHAR,
+    week INTEGER,
+    month VARCHAR,
+    year INTEGER,
+    weekday VARCHAR,
+    PRIMARY KEY (id));
 """)
 
 # STAGING TABLES
-
+# We want to insert the databatches into the stagign tables from the S3 buckets
 staging_events_copy = ("""
-""").format()
+    COPY staging_events FROM '{}'
+    credentials 'aws_iam_role={}'
+    region 'us-west-2';
+""").format(config["S3"]["LOG_DATA"], config["IAM_ROLE"]["ARN"])
 
 staging_songs_copy = ("""
 """).format()
