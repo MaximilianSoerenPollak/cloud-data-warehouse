@@ -1,5 +1,5 @@
 
-from aws_startup import DWH_CLUSTER_IDENTIFIER, DWH_IAM_ROLE_NAME, redshift, iam
+from aws_startup import DWH_CLUSTER_IDENTIFIER, DWH_IAM_ROLE_NAME, redshift, iam, config
 from time import sleep
 # ----- CODE ----
 
@@ -30,7 +30,9 @@ def delete_iam():
     except iam.exceptions.NoSuchEntityException as e:
         print(e)
         print("IAM role successfully deleted")
-
+    except Exception as e:
+        print(e)
+        delete_iam()
 
 # Run all the functions if the script is called.
 if __name__ == '__main__':

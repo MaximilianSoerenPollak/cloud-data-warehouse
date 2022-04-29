@@ -61,8 +61,14 @@ redshift = boto3.client('redshift',
 
 # ---- Functions ----
 
+def set_configs(section, configname, value):
+    config.set(section, configname, value)
+    with open('dwh.cfg', 'w') as configfile:
+        config.write(configfile)
+    print(f"Config: {configname} = {value} written in {section} ")
 
 # Create the IAM role as well as assign policy
+# TODO: Refractor this, this seems kind of stupid.
 def create_iam_role():
     try:
         dwhRole = iam.create_role(
@@ -75,25 +81,19 @@ def create_iam_role():
                    'Principal': {'Service': 'redshift.amazonaws.com'}}],
                  'Version': '2012-10-17'})
         )
-        iam.attach_role_policy(RoleName=DWH_IAM_ROLE_NAME,
-                               PolicyArn="arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
-                              )['ResponseMetadata']['HTTPStatusCode']
-        roleArn = iam.get_role(RoleName=DWH_IAM_ROLE_NAME)['Role']['Arn']
-        return roleArn
     except iam.exceptions.EntityAlreadyExistsException as e:
         print("Role already created. Skipping creation.")
-        iam.attach_role_policy(RoleName=DWH_IAM_ROLE_NAME,
-                               PolicyArn="arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
-                              )['ResponseMetadata']['HTTPStatusCode']
-        roleArn = iam.get_role(RoleName=DWH_IAM_ROLE_NAME)['Role']['Arn']
-        return roleArn
-    except Exception as e:
-        print("Something went wrong.")    
-        print(e)
+        pass
+    iam.attach_role_policy(RoleName=DWH_IAM_ROLE_NAME,
+                           PolicyArn="arn:aws:iam::aws:policy/amazons3readonlyaccess"
+                          )['ResponseMetadata']['HTTPStatusCode']
+    rolearn = iam.get_role(RoleName=DWH_IAM_ROLE_NAME)['Role']['Arn']
+    set_configs("IAM", "ROLE_ARN", rolearn)
+    return rolearn
 
 
 # Create Redshift Cluster and check if one with same name already there.
-def create_cluster(roleArn):
+def create_cluster(rolearn):
     try:
         response = redshift.create_cluster(        
             #HW
@@ -108,7 +108,7 @@ def create_cluster(roleArn):
             MasterUserPassword=DWH_DB_PASSWORD,
             
             #Roles (for s3 access)
-            IamRoles=[roleArn]  
+            IamRoles=[rolearn]  
         )
         return True
     except redshift.exceptions.ClusterAlreadyExistsFault as e:
@@ -118,7 +118,7 @@ def create_cluster(roleArn):
         print(e)
         sleep(5)
         print("Trying again, failed to create cluster.")
-        create_cluster(roleArn)
+        create_cluster(rolearn)
 
 # Function to check what the current status of our cluster is
 # Note: This dataframe is bad. it's just pretty to look at but bad to work with (see Key/Value).  
@@ -175,6 +175,7 @@ if __name__ == '__main__':
     # Get cluster properties and check health
     myClusterProps = redshift.describe_clusters(ClusterIdentifier=DWH_CLUSTER_IDENTIFIER)['Clusters'][0]
     check_redshift, DWH_ENDPOINT = check_redshift_cluster(myClusterProps)
+    set_configs("CLUSTER", "DWH_ENDPOINT", DWH_ENDPOINT)
     open_port(myClusterProps)
     conn = check_connection(DWH_ENDPOINT)
     if conn:

@@ -4,20 +4,24 @@
 # ----------------------- SCRIPT ------------------------------------------------------
 
 import configparser
-
+from aws_startup import iam, DWH_IAM_ROLE_NAME
 # CONFIG
 config = configparser.ConfigParser()
 config.read('dwh.cfg')
 
+# GET iam ROLE ARN 
+
+rolearn = iam.get_role(RoleName=DWH_IAM_ROLE_NAME)['Role']['Arn']
+
 # DROP TABLES
 
 staging_events_table_drop = "DROP TABLE IF EXISTS staging_events CASCADE;"
-staging_songs_table_drop = ""
-songplay_table_drop = ""
-user_table_drop = ""
-song_table_drop = ""
-artist_table_drop = ""
-time_table_drop = ""
+staging_songs_table_drop = "DROP TABLE IF EXISTS staging_songs CASCADE;"
+songplay_table_drop = "DROP TABLE IF EXISTS songplay CASCADE;"
+user_table_drop = "DROP TABLE IF EXISTS users CASCADE;"
+song_table_drop = "DROP TABLE IF EXISTS songs CASCADE;"
+artist_table_drop = "DROP TABLE IF EXISTS artists CASCADE;"
+time_table_drop = "DROP TABLE IF EXISTS times CASCADE;"
 
 # Note: Do not bother with Forgein Keys' as AWS does not enforce them and counts on your own 
 #       ETL to enforce them, it does however enforce 'NOT NULL'. I will still define a PK just
@@ -26,113 +30,115 @@ time_table_drop = ""
 # CREATE TABLES
 staging_events_table_create= ("""
     CREATE TABLE IF NOT EXISTS staging_events(
-    id IDENTITY(0,1) NOT NULL,
-    auth VARCHAR(50) NOT NULL,
-    first_name VARCHAR(255),
-    last_name VARCHAR(255),
-    gender VARCHAR(5),
-    location VARCHAR,
-    user_id INT NOT NULL, 
-    artist VARCHAR(255),
-    song VARCHAR(255), 
+    id BIGINT IDENTITY(0,1) NOT NULL,
+    artist VARCHAR,
+    auth VARCHAR,
+    first_name VARCHAR,
+    gender VARCHAR,
+    item_in_session INTEGER,
+    last_name VARCHAR,
     length FLOAT,
-    level VARCHAR(50),
-    session_id INT,
-    item_in_session INT(255),
-    page VARCHAR(50), 
-    method VARCHAR(10),
-    status INT(3)
-    user_agent VARCHAR,
+    level VARCHAR,
+    location VARCHAR(500),
+    method VARCHAR,
+    page VARCHAR, 
     registration BIGINT,
-    ts TIMESTAMP
-    PRIMARY KEY (id));
+    session_id INTEGER,
+    song VARCHAR, 
+    status SMALLINT,
+    ts BIGINT,
+    user_agent VARCHAR,
+    user_id INTEGER); 
 """)
 
 staging_songs_table_create = ("""
     CREATE TABLE IF NOT EXISTS staging_songs(
-    id IDENTITY(0,1) NOT NULL,
+    id BIGINT IDENTITY(0,1) NOT NULL,
     artist_id VARCHAR,
     artist_latitude FlOAT,
-    artist_longitute FLOAT,
-    artist_name VARCHAR,
+    artist_longitude FLOAT,
+    artist_name VARCHAR(500),
     duration FLOAT,
     song_id VARCHAR,
-    title VARCHAR,
-    year INTEGER
-    PRIMARY KEY (id));
+    title VARCHAR(500),
+    year INTEGER);
 """)
 
 songplay_table_create = ("""
-    // Double check if these need to be 'Not Null' or not
-    id IDENTITYT(0,1) NOT NULL,
-    songplay_id INTEGER NOT NULL,
-    start_time TIMESTAMP NOT NULL,
-    user_id INTEGER NOT NULL,
-    level VARCHAR(50) NOT NULL,
-    song_id INTEGER NOT NULL,
-    artist_id INTEGER NOT NULL,
-    session_id INTEGER NOT NULL,
-    location VARCHAR NOT NULL,
-    user_agent VARCHAR NOT NULL,
-    PRIMARY KEY (id));
+    CREATE TABLE IF NOT EXISTS songplay(
+    id BIGINT IDENTITY(0,1) NOT NULL,
+    songplay_id INTEGER,
+    start_time TIMESTAMP,
+    user_id INTEGER,
+    level VARCHAR,
+    song_id INTEGER,
+    artist_id INTEGER,
+    session_id INTEGER,
+    location VARCHAR,
+    user_agent VARCHAR);
 """)
 
 user_table_create = ("""
-    id IDENTITYT(0,1) NOT NULL,
-    user_id INTEGER NOT NULL,
-    first_name VARCHAR NOT NULL,
-    last_name VARCHAR NOT NULL,
-    gender VARCHAR(5) ,
-    level VARCHAR(50),
-    PRIMARY KEY (id));    
+    CREATE TABLE IF NOT EXISTS users(
+    id BIGINT IDENTITY(0,1) NOT NULL,
+    user_id INTEGER,
+    first_name VARCHAR,
+    last_name VARCHAR,
+    gender VARCHAR,
+    level VARCHAR);
 """)
 
 song_table_create = ("""
-    id IDENTITYT(0,1) NOT NULL,
+    CREATE TABLE IF NOT EXISTS songs(
+    id BIGINT IDENTITY(0,1) NOT NULL,
     song_id INTEGER,
     title VARCHAR,
     artist_id INTEGER,
     year INTEGER,
-    duration FLOAT,
-    PRIMARY KEY (id));
+    duration FLOAT);
 """)
 
 artist_table_create = ("""
-    id INDENTITYT(0,1) NOT NULL,
-    artist_id VARCHAR NOT NULL,
+    CREATE TABLE IF NOT EXISTS artists(
+    id BIGINT IDENTITY(0,1) NOT NULL,
+    artist_id VARCHAR,
     name VARCHAR,
-    location VARCHAR,
+    location VARCHAR(500),
     lattitude FLOAT,
-    longitude FLOAT,
-    PRIMARY KEY (id));
+    longitude FLOAT);
 """)
 
 time_table_create = ("""
-    id IDENTITYT(0,1) NOT NULL,
+    CREATE TABLE IF NOT EXISTS times(
+    id BIGINT IDENTITY(0,1) NOT NULL,
     start_time TIMESTAMP,
     hour INTEGER,
     day VARCHAR,
     week INTEGER,
     month VARCHAR,
     year INTEGER,
-    weekday VARCHAR,
-    PRIMARY KEY (id));
+    weekday VARCHAR);
 """)
 
 # STAGING TABLES
 # We want to insert the databatches into the stagign tables from the S3 buckets
 staging_events_copy = ("""
-    COPY staging_events FROM '{}'
-    credentials 'aws_iam_role={}'
-    region 'us-west-2';
-""").format(config["S3"]["LOG_DATA"], config["IAM_ROLE"]["ARN"])
+    COPY staging_events
+    FROM {}
+    iam_role '{}'
+    format as JSON {};""").format(config["S3"]["LOG_DATA"], rolearn, config["S3"]["LOG_JSONPATH"])
 
 staging_songs_copy = ("""
-""").format()
+    COPY staging_songs(artist_id, artist_latitude,artist_longitude, artist_name, duration, song_id, title, year) 
+    FROM {}
+    iam_role '{}'
+    format as JSON 'auto';
+""").format(config["S3"]["SONG_DATA"], rolearn)
 
 # FINAL TABLES
 
 songplay_table_insert = ("""
+    
 """)
 
 user_table_insert = ("""
