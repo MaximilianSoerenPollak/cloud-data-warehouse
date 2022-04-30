@@ -29,7 +29,7 @@ time_table_drop = "DROP TABLE IF EXISTS times CASCADE;"
 
 # CREATE TABLES
 staging_events_table_create= ("""
-    CREATE TABLE IF NOT EXISTS staging_events(
+    CREATE TABLE IF NOT EXISTS staging_events( 
     id BIGINT IDENTITY(0,1) NOT NULL,
     artist VARCHAR,
     auth VARCHAR,
@@ -58,6 +58,7 @@ staging_songs_table_create = ("""
     artist_latitude FlOAT,
     artist_longitude FLOAT,
     artist_name VARCHAR(500),
+    artist_location VARCHAR(500),
     duration FLOAT,
     song_id VARCHAR,
     title VARCHAR(500),
@@ -67,14 +68,13 @@ staging_songs_table_create = ("""
 songplay_table_create = ("""
     CREATE TABLE IF NOT EXISTS songplay(
     id BIGINT IDENTITY(0,1) NOT NULL,
-    songplay_id INTEGER,
     start_time TIMESTAMP,
     user_id INTEGER,
     level VARCHAR,
-    song_id INTEGER,
-    artist_id INTEGER,
+    song_id VARCHAR,
+    artist_id VARCHAR,    
     session_id INTEGER,
-    location VARCHAR,
+    location VARCHAR(500),
     user_agent VARCHAR);
 """)
 
@@ -91,9 +91,9 @@ user_table_create = ("""
 song_table_create = ("""
     CREATE TABLE IF NOT EXISTS songs(
     id BIGINT IDENTITY(0,1) NOT NULL,
-    song_id INTEGER,
-    title VARCHAR,
-    artist_id INTEGER,
+    song_id VARCHAR,
+    title VARCHAR(500),
+    artist_id VARCHAR,
     year INTEGER,
     duration FLOAT);
 """)
@@ -102,9 +102,9 @@ artist_table_create = ("""
     CREATE TABLE IF NOT EXISTS artists(
     id BIGINT IDENTITY(0,1) NOT NULL,
     artist_id VARCHAR,
-    name VARCHAR,
+    artist_name VARCHAR(500),
     location VARCHAR(500),
-    lattitude FLOAT,
+    latitude FLOAT,
     longitude FLOAT);
 """)
 
@@ -113,11 +113,11 @@ time_table_create = ("""
     id BIGINT IDENTITY(0,1) NOT NULL,
     start_time TIMESTAMP,
     hour INTEGER,
-    day VARCHAR,
+    day INTEGER,
     week INTEGER,
-    month VARCHAR,
+    month INTEGER,
     year INTEGER,
-    weekday VARCHAR);
+    weekday INTEGER);
 """)
 
 # STAGING TABLES
@@ -138,19 +138,64 @@ staging_songs_copy = ("""
 # FINAL TABLES
 
 songplay_table_insert = ("""
-    
+    INSERT INTO songplay(start_time, user_id, 
+        level, song_id, artist_id, session_id, location, user_agent)
+    SELECT 
+        TIMESTAMP 'epoch' + se.ts / 1000 * INTERVAL '1 second' as start_time,
+        se.user_id as user_id,
+        se.level as level,
+        ss.song_id as song_id,
+        ss.artist_id as artist_id,
+        se.session_id as session_id,
+        se.location as location,
+        se.user_agent as user_agent
+    FROM staging_events as se 
+    LEFT JOIN staging_songs as ss ON se.song = ss.title 
+    LEFT JOIN staging_songs as ss1 ON se.artist = ss1.artist_name
+    WHERE se.page = 'NextSong';
 """)
 
 user_table_insert = ("""
+    INSERT INTO users(user_id, first_name, last_name, gender, level)
+    SELECT DISTINCT user_id, first_name, last_name, gender, level
+    FROM staging_events
+    WHERE page = 'NextSong';
 """)
 
+
 song_table_insert = ("""
+    INSERT INTO songs(song_id, title, artist_id, year, duration)
+    SELECT DISTINCT song_id, title, artist_id, year, duration
+    FROM staging_songs;
 """)
 
 artist_table_insert = ("""
+    INSERT INTO artists(artist_id, artist_name, location, latitude, longitude)
+    SELECT DISTINCT
+            artist_id, 
+            artist_name as name, 
+            artist_location as location, 
+            artist_latitude as latitude,
+            artist_longitude as longitude
+    FROM staging_songs;
 """)
 
 time_table_insert = ("""
+    INSERT INTO times(start_time, hour, day, week, month, year, weekday)
+    SELECT DISTINCT
+        start_time, 
+        extract(hour from start_time) as hour, 
+        extract(day from start_time) as day,
+        extract(week from start_time) as week, 
+        extract(month from start_time) as month, 
+        extract(year from start_time) as year,
+        extract(weekday from start_time) as weekday
+    FROM (
+        SELECT DISTINCT
+            TIMESTAMP 'epoch' + ts / 1000 * INTERVAL '1 second' as start_time
+            FROM staging_events
+            WHERE page = 'NextSong'
+    )
 """)
 
 # QUERY LISTS

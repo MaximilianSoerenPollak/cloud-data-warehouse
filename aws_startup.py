@@ -115,7 +115,7 @@ def create_cluster(rolearn):
         return True
     except Exception as e:
         print(e)
-        sleep(5)
+        sleep(10)
         print("Trying again, failed to create cluster.")
         create_cluster(rolearn)
 
@@ -127,14 +127,20 @@ def prettyRedshiftProps(props):
     return pd.DataFrame(data=x, columns=["Key", "Value"])
 
 # Function that runs and only returns true once our cluster is up.
-def check_redshift_cluster(props):
+def check_redshift_cluster():
     while True:
         try:
+            props = redshift.describe_clusters(ClusterIdentifier=DWH_CLUSTER_IDENTIFIER)['Clusters'][0]
             df = prettyRedshiftProps(props)
             if df.iloc[2]["Value"] == "available":
-                return True, df.iloc[5]["Value"]["Address"]
+                set_configs("CLUSTER", "DWH_ENDPOINT", df.iloc[5]["Value"]["Address"])
+                return True
+            
+            else:
+                print("Cluster not available yet, trying again soon.")
+                sleep(10)
         except Exception as e:
-            print("Cluster not Available yet. Trying again.")
+            print("Something went wrong, trying again.")
             sleep(10)
 # Open ports of our ec2 instance to Redshift and S3
 def open_port(props):
@@ -172,10 +178,10 @@ if __name__ == '__main__':
     while not create_cluster(roleArn):
         pass
     # Get cluster properties and check health
+    while not check_redshift_cluster():
+        pass
     myClusterProps = redshift.describe_clusters(ClusterIdentifier=DWH_CLUSTER_IDENTIFIER)['Clusters'][0]
-    check_redshift, DWH_ENDPOINT = check_redshift_cluster(myClusterProps)
-    set_configs("CLUSTER", "DWH_ENDPOINT", DWH_ENDPOINT)
     open_port(myClusterProps)
-    conn = check_connection(DWH_ENDPOINT)
+    conn = check_connection(config.get("CLUSTER","DWH_ENDPOINT"))
     if conn:
         print("Redshift cluster up and running.")

@@ -8,15 +8,13 @@ def delete_redshift():
     try:
         redshift.delete_cluster( ClusterIdentifier=DWH_CLUSTER_IDENTIFIER,  SkipFinalClusterSnapshot=True)
         myClusterProps = redshift.describe_clusters(ClusterIdentifier=DWH_CLUSTER_IDENTIFIER)['Clusters'][0]
-        sleep(2)
+        sleep(5)
         delete_redshift()
     except redshift.exceptions.InvalidClusterStateFault as e:
-        print(e)
-        sleep(2)
+        sleep(10)
         print("Cluster currently deleting.")
         delete_redshift()
     except redshift.exceptions.ClusterNotFoundFault as e:
-        print(e)
         print("Cluster was successfully deleted.")
 
 
@@ -28,7 +26,6 @@ def delete_iam():
         sleep(5)
         delete_iam()
     except iam.exceptions.NoSuchEntityException as e:
-        print(e)
         print("IAM role successfully deleted")
     except Exception as e:
         print(e)

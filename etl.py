@@ -18,10 +18,8 @@ DWH_ENDPOINT          = config.get("CLUSTER", "DWH_ENDPOINT")
 
 def load_staging_tables(cur, conn):
     for query in copy_table_queries:
-        print(f"Starting to execute {query}")
         cur.execute(query)
         conn.commit()
-        print(f"Just executed {query}")
 
 def insert_tables(cur, conn):
     for query in insert_table_queries:
@@ -34,10 +32,10 @@ def main():
     conn_string="postgresql://{}:{}@{}:{}/{}".format(DWH_DB_USER, DWH_DB_PASSWORD, DWH_ENDPOINT, DWH_PORT,DWH_DB)
     conn = psycopg2.connect(conn_string)    
     cur = conn.cursor()
-
+    
     
     load_staging_tables(cur, conn)
-    #insert_tables(cur, conn)
+    insert_tables(cur, conn)
 
     conn.close()
 
