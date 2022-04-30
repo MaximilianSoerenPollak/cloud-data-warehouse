@@ -65,10 +65,9 @@ def set_configs(section, configname, value):
     config.set(section, configname, value)
     with open('dwh.cfg', 'w') as configfile:
         config.write(configfile)
-    print(f"Config: {configname} = {value} written in {section} ")
+    print(f"Config: {configname} written in {section} ")
 
 # Create the IAM role as well as assign policy
-# TODO: Refractor this, this seems kind of stupid.
 def create_iam_role():
     try:
         dwhRole = iam.create_role(

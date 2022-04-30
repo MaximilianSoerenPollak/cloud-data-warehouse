@@ -126,14 +126,14 @@ staging_events_copy = ("""
     COPY staging_events
     FROM {}
     iam_role '{}'
-    format as JSON {};""").format(config["S3"]["LOG_DATA"], rolearn, config["S3"]["LOG_JSONPATH"])
-
+    format as JSON {}
+    region 'us-west-2';""").format(config["S3"]["LOG_DATA"], rolearn, config["S3"]["LOG_JSONPATH"])
 staging_songs_copy = ("""
     COPY staging_songs(artist_id, artist_latitude,artist_longitude, artist_name, duration, song_id, title, year) 
     FROM {}
     iam_role '{}'
-    format as JSON 'auto';
-""").format(config["S3"]["SONG_DATA"], rolearn)
+    format as JSON 'auto'
+    region 'us-west-2';""").format(config["S3"]["SONG_DATA"], rolearn)
 
 # FINAL TABLES
 

@@ -18,9 +18,10 @@ DWH_ENDPOINT          = config.get("CLUSTER", "DWH_ENDPOINT")
 
 def load_staging_tables(cur, conn):
     for query in copy_table_queries:
+        print(f"Starting to execute {query}")
         cur.execute(query)
         conn.commit()
-
+        print(f"Just executed {query}")
 
 def insert_tables(cur, conn):
     for query in insert_table_queries:
