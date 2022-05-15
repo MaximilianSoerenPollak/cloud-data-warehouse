@@ -120,7 +120,7 @@ Be mindful that this will make a Redshift cluster with your AWS account.
 
 2. Open a terminal and navigate to the folder where you cloned the repo and make a virtual environment.
    ```sh
-      cd place/you/cloned/repo/portfolio-api
+      cd place/you/cloned/repo/cloud-data-warehouse
    ```
    Activate and install all requirements
    
